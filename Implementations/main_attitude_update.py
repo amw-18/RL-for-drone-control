@@ -3,6 +3,7 @@ import pygame
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import *
 from gym_pybullet_drones.control.DSLPIDControl import *
+from myControl import *
 from gym_pybullet_drones.utils.utils import sync
 from pygame.locals import *
 import pybullet as p
@@ -12,20 +13,20 @@ import time
 def get_action(pressed_keys):
     add_angle = np.array([0., 0., 0.])
     if pressed_keys[K_UP]:
-        add_angle[1] += 0.0087
+        add_angle[0] -= 0.0087*5
     if pressed_keys[K_DOWN]:
-        add_angle[1] -= 0.0087
+        add_angle[0] += 0.0087*5
     if pressed_keys[K_RIGHT]:
-        add_angle[0] += 0.0087
+        add_angle[1] += 0.0087*5
     if pressed_keys[K_LEFT]:
-        add_angle[0] -= 0.0087
+        add_angle[1] -= 0.0087*5
 
     return add_angle
 
 
 if __name__ == "__main__":
     simulation_freq_hz = 240
-    control_freq_hz = 48
+    control_freq_hz = 240
     aggregate = False
     # Initializing the simulation
     INIT_XYZS = np.array([[0., 0., 1.]])
@@ -47,7 +48,7 @@ if __name__ == "__main__":
 
     PYB_CLIENT = env.getPyBulletClient()
     
-    ctrl = [DSLPIDControl(drone_model=DroneModel.CF2X)]
+    ctrl = [myControl(drone_model=DroneModel.CF2X)]
 
     pygame.init()
     screen = pygame.display.set_mode((300, 100))
@@ -61,6 +62,7 @@ if __name__ == "__main__":
     CTRL_EVERY_N_STEPS = int(np.floor(env.SIM_FREQ/control_freq_hz))
     while running:
         obs, reward, done, info = env.step(action)
+        state = obs[str(0)]["state"]
 
         if STEP%CTRL_EVERY_N_STEPS == 0:
             for event in pygame.event.get():
@@ -72,16 +74,17 @@ if __name__ == "__main__":
             if pressed:
                 add_angle = get_action(pressed)
                 cur_rpy = np.array(p.getEulerFromQuaternion(obs[str(0)]["state"][3:7]))
-                #TODO: add proper code to determine target_rpy
-                # if cur_rpy + add_angle > 1:
-                #     target_rpy
-                # target_rpy[0] =  + add_angle
-
-            action[str(0)], _, _ = ctrl[0].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
-                                                                    state=obs[str(0)]["state"],
-                                                                    target_pos=obs[str(0)]["state"][0:3],
-                                                                    target_rpy=                                                     
+                target_rpy = np.clip(cur_rpy + add_angle, -0.785398, 0.785398)
+            else:
+                target_rpy = np.zeros(3)
+            # print(target_rpy)
+            target_pos = np.array([*obs[str(0)]["state"][0:2], 1.0])
+            action[str(0)] = ctrl[0].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
+                                                                    state=state,
+                                                                    target_pos=target_pos,
+                                                                    target_rpy=target_rpy                                                   
                                                                     )
+            # print(action)
 
         if STEP%(env.SIM_FREQ/1) == 0:
             env.render()

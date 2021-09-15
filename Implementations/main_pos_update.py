@@ -11,21 +11,21 @@ import time
 def get_action(pressed_keys):
     add_pos = np.array([0., 0., 0.])
     if pressed_keys[K_UP]:
-        add_pos[1] += 0.2
+        add_pos[1] += 0.1
     if pressed_keys[K_DOWN]:
-        add_pos[1] -= 0.2
+        add_pos[1] -= 0.1
     if pressed_keys[K_RIGHT]:
-        add_pos[0] += 0.2
+        add_pos[0] += 0.1
     if pressed_keys[K_LEFT]:
-        add_pos[0] -= 0.2
+        add_pos[0] -= 0.1
 
     return add_pos
 
 
 if __name__ == "__main__":
     simulation_freq_hz = 240
-    control_freq_hz = 48
-    aggregate = False
+    control_freq_hz = 240
+    aggregate = True
     # Initializing the simulation
     INIT_XYZS = np.array([[0., 0., 1.]])
     INIT_RPYS = np.array([[0., 0., 0.]])
