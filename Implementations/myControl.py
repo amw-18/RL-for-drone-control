@@ -26,6 +26,12 @@ class myControl(DSLPIDControl):
 
         """
         super().__init__(drone_model=drone_model, g=g)
+        self.P_COEFF_FOR = np.array([.4, .4, 1.25])/2
+        self.I_COEFF_FOR = np.array([.05, .05, .05])/2
+        self.D_COEFF_FOR = np.array([.2, .2, .5])/2
+        self.P_COEFF_TOR = np.array([70000., 70000., 60000.])/2
+        self.I_COEFF_TOR = np.array([.0, .0, 500.])/2
+        self.D_COEFF_TOR = np.array([20000., 20000., 12000.])/2
 
     def computeControl(self,
                        control_timestep,

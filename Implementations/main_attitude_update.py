@@ -11,17 +11,23 @@ import time
 
 
 def get_action(pressed_keys):
+    # 1 degree which keeps stacking if the key is still pressed
+    valid = False
     add_angle = np.array([0., 0., 0.])
     if pressed_keys[K_UP]:
-        add_angle[0] -= 0.0087*5
+        add_angle[0] -= 0.0174533
+        valid = True
     if pressed_keys[K_DOWN]:
-        add_angle[0] += 0.0087*5
+        add_angle[0] += 0.0174533
+        valid = True
     if pressed_keys[K_RIGHT]:
-        add_angle[1] += 0.0087*5
+        add_angle[1] += 0.0174533
+        valid = True
     if pressed_keys[K_LEFT]:
-        add_angle[1] -= 0.0087*5
+        add_angle[1] -= 0.0174533
+        valid = True
 
-    return add_angle
+    return valid, add_angle
 
 
 if __name__ == "__main__":
@@ -71,14 +77,14 @@ if __name__ == "__main__":
 
             # If keyboard is pressed, modify action
             pressed = pygame.key.get_pressed()
-            if pressed:
-                add_angle = get_action(pressed)
+            valid, add_angle = get_action(pressed)
+            if valid:
                 cur_rpy = np.array(p.getEulerFromQuaternion(obs[str(0)]["state"][3:7]))
-                target_rpy = np.clip(cur_rpy + add_angle, -0.785398, 0.785398)
+                target_rpy = np.clip(cur_rpy + add_angle, -0.174533*2, 0.174533*2) # 20 degrees
             else:
                 target_rpy = np.zeros(3)
-            # print(target_rpy)
             target_pos = np.array([*obs[str(0)]["state"][0:2], 1.0])
+            # target_pos = obs[str(0)]["state"][0:3]
             action[str(0)] = ctrl[0].computeControlFromState(control_timestep=CTRL_EVERY_N_STEPS*env.TIMESTEP,
                                                                     state=state,
                                                                     target_pos=target_pos,
