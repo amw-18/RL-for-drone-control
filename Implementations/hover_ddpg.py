@@ -16,7 +16,7 @@ if __name__ == "__main__":
     INIT_XYZS = np.array([[0., 0., 1.]])
     INIT_RPYS = np.array([[0., 0., 0.]])
 
-    register_env("HoverR3D2", lambda _: HoverR3D2(drone_model=DroneModel.CF2X,
+    register_env("HoverR3D1", lambda _: HoverR3D1(drone_model=DroneModel.CF2X,
                                                     initial_xyzs=INIT_XYZS,
                                                     initial_rpys=INIT_RPYS,
                                                     freq=SIM_FREQ_HZ,
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     config = DEFAULT_CONFIG.copy()
     config["num_workers"] = 10
     config["framework"] = "torch"
-    config["env"] = "HoverR3D2"
+    config["env"] = "HoverR3D1"
     
     trainer = DDPGTrainer(config=config)
 

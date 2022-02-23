@@ -82,7 +82,7 @@ class HoverR2D2(HoverAviary):
 
 class HoverR3D1(HoverAviary):
     """
-    Maximize the time of each episode along with incentivizing to minimize velocities and drift
+    Additional incentive to minimize velocities and drift.
     """
     def __init__(self,
                  drone_model: DroneModel=DroneModel.CF2X,
@@ -107,10 +107,12 @@ class HoverR3D1(HoverAviary):
                          obs=obs,
                          act=act
                          )
+        self.HOVER_XYZS = np.array([[0., 0., 1.]])
 
     def _computeReward(self):
         state = self._getDroneStateVector(0)
-        return 0 - np.linalg.norm(state[10:13]) - np.linalg.norm(state[13:16]) - np.linalg.norm(self.INIT_XYZS[0]-state[0:3])
+        # reward = -(Distance from hover target)^2 - ||v|| - ||w||
+        return - np.linalg.norm(self.HOVER_XYZS[0]-state[0:3])**2 - np.linalg.norm(state[10:13]) - np.linalg.norm(state[13:16])
 
     def _computeDone(self):
         return super()._computeDone()

@@ -4,23 +4,26 @@ from ray.rllib.agents.ddpg import DDPGTrainer
 from ray.rllib.agents.ddpg import DEFAULT_CONFIG
 import yaml
 
-def mcar_env(env_config):
-    return gym.make("MountainCarContinuous-v0")
+register_env("mcar_env", lambda _: gym.make("MountainCarContinuous-v0"))
 
-register_env("mcar_env", mcar_env)
-
-configfile = "rllib trials/mountaincarcontinuous-ddpg.yaml"
+# Loading preset hyperparameter values from a yaml file
+configfile = "Implementations/rllib trials/mountaincarcontinuous-ddpg.yaml"
 with open(configfile) as f:
     my_file = yaml.safe_load(f)
 
+# Creating the trainer
 trainer = DDPGTrainer(config=my_file["config"])
 
-for i in range(20):
-    results = trainer.train()
-    print(f"Iter: {i}, avg. reward={results['episode_reward_mean']}")
+# Training for 'num_iter' iterations
+num_iter = 2
+for i in range(num_iter):
+    result = trainer.train()
+    print(f"Iter: {i}, avg. reward={result['episode_reward_mean']}")
 
-# Evaluation
-env = mcar_env({})
+trainer.save()
+
+# Evaluation for a single episode
+env = gym.make("MountainCarContinuous-v0")
 obs = env.reset()
 done = False
 total_reward = 0.0
@@ -30,4 +33,3 @@ while not done:
     total_reward += reward
 
 print(f"Total reward for 1 episode = {total_reward}")
-

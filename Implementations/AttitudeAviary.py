@@ -3,6 +3,7 @@ from gym import spaces
 
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics, BaseAviary
 from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import ActionType, ObservationType, BaseSingleAgentAviary
+from gym import spaces
 
 
 class AttitudeAviary(BaseSingleAgentAviary):
@@ -14,16 +15,15 @@ class AttitudeAviary(BaseSingleAgentAviary):
     Observation : (12,) -> (x, y, z, r, p, y, vx, vy, vz, wx, wy, wz)
     """
     def __init__(self, 
-                drone_model: DroneModel = DroneModel.CF2X, 
-                target_rpy_rates=None, 
+                drone_model: DroneModel = DroneModel.CF2X,  
                 physics: Physics = Physics.PYB, 
                 freq: int = 240, 
                 aggregate_phy_steps: int = 1, 
                 gui=False, 
                 record=False):
         super().__init__(drone_model, 
-                        np.array([0.0, 0.0, 5.0]), # initial_xyzs
-                        np.zeros((3,)), # initial_rpys
+                        np.array([[0.0, 0.0, 5.0]]), # initial_xyzs
+                        np.array([[0.0, 0.0, 0.0]]), # initial_rpys
                         physics, 
                         freq, 
                         aggregate_phy_steps, 
@@ -32,10 +32,19 @@ class AttitudeAviary(BaseSingleAgentAviary):
                         ObservationType.KIN, # Kinematic
                         ActionType.RPM) # Individual RPMs to motors
 
-        self.EPISODE_LEN_SEC = 1
-
-        self.target_rpy_rates = target_rpy_rates
         self.max_rpy_rates = 5.24 # rad/s
+
+        self.EPISODE_LEN_SEC = 4
+
+        self.target_rpy_rates = self._sample_rpy_rates()
+
+    def reset(self):
+        self.target_rpy_rates = self._sample_rpy_rates()
+        return super().reset()
+
+    def _sample_rpy_rates(self):
+        rpy_rates = spaces.Box(-self.max_rpy_rates, self.max_rpy_rates, (3,)).sample()
+        return np.array([rpy_rates])
 
     def _computeReward(self):
         state = self._getDroneStateVector(0)
@@ -43,14 +52,20 @@ class AttitudeAviary(BaseSingleAgentAviary):
         return -1*np.clip(np.sum(np.abs(self.target_rpy_rates - current_rpy_rates))/ \
             (3*self.max_rpy_rates), 0, 1)
 
+    # def _computeDone(self):
+    #     state = self._getDroneStateVector(0)
+    #     current_rpy_rates = state[13:16]
+    #     if (self.step_counter/self.SIM_FREQ > self.EPISODE_LEN_SEC) or \
+    #     (np.max(np.abs(current_rpy_rates)) > self.max_rpy_rates):
+    #         return True
+    #     else:
+    #         return False
+
     def _computeDone(self):
-        state = self._getDroneStateVector(0)
-        current_rpy_rates = state[13:16]
-        if (self.step_counter/self.SIM_FREQ > self.EPISODE_LEN_SEC) or \
-        (np.max(np.abs(current_rpy_rates)) > self.max_rpy_rates):
-            return True
-        else:
-            return False
+        return super()._computeDone()
+
+    def _computeInfo(self):
+        return {}
 
     def _clipAndNormalizeState(self,
                                state
@@ -128,14 +143,14 @@ class AttitudeAviary(BaseSingleAgentAviary):
         
         """
         if not(clipped_pos_xy == np.array(state[0:2])).all():
-            print("[WARNING] it", self.step_counter, "in HoverAviary._clipAndNormalizeState(), clipped xy position [{:.2f} {:.2f}]".format(state[0], state[1]))
+            print("[WARNING] it", self.step_counter, "in AttitudeAviary._clipAndNormalizeState(), clipped xy position [{:.2f} {:.2f}]".format(state[0], state[1]))
         if not(clipped_pos_z == np.array(state[2])).all():
-            print("[WARNING] it", self.step_counter, "in HoverAviary._clipAndNormalizeState(), clipped z position [{:.2f}]".format(state[2]))
+            print("[WARNING] it", self.step_counter, "in AttitudeAviary._clipAndNormalizeState(), clipped z position [{:.2f}]".format(state[2]))
         if not(clipped_rp == np.array(state[7:9])).all():
-            print("[WARNING] it", self.step_counter, "in HoverAviary._clipAndNormalizeState(), clipped roll/pitch [{:.2f} {:.2f}]".format(state[7], state[8]))
+            print("[WARNING] it", self.step_counter, "in AttitudeAviary._clipAndNormalizeState(), clipped roll/pitch [{:.2f} {:.2f}]".format(state[7], state[8]))
         if not(clipped_vel_xy == np.array(state[10:12])).all():
-            print("[WARNING] it", self.step_counter, "in HoverAviary._clipAndNormalizeState(), clipped xy velocity [{:.2f} {:.2f}]".format(state[10], state[11]))
+            print("[WARNING] it", self.step_counter, "in AttitudeAviary._clipAndNormalizeState(), clipped xy velocity [{:.2f} {:.2f}]".format(state[10], state[11]))
         if not(clipped_vel_z == np.array(state[12])).all():
-            print("[WARNING] it", self.step_counter, "in HoverAviary._clipAndNormalizeState(), clipped z velocity [{:.2f}]".format(state[12]))
+            print("[WARNING] it", self.step_counter, "in AttitudeAviary._clipAndNormalizeState(), clipped z velocity [{:.2f}]".format(state[12]))
 
     
