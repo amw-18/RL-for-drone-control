@@ -1,4 +1,3 @@
-from argparse import Action
 import numpy as np
 from gym import spaces
 
@@ -7,7 +6,7 @@ from gym_pybullet_drones.envs.single_agent_rl.BaseSingleAgentAviary import Actio
 from gym import spaces
 
 
-class AttitudeAviary(BaseSingleAgentAviary):
+class AttitudeAviary1(BaseSingleAgentAviary):
     """
     Environment for learning attitude control. Episodes of length 1 sec. 
     Episodes end when a threshold angular velocity is reached.
@@ -155,7 +154,7 @@ class AttitudeAviary(BaseSingleAgentAviary):
             print("[WARNING] it", self.step_counter, "in AttitudeAviary._clipAndNormalizeState(), clipped z velocity [{:.2f}]".format(state[12]))
 
 
-class AttitudeAviary2(BaseSingleAgentAviary):
+class AttitudeAviary1_1(BaseSingleAgentAviary):
     def __init__(self, 
                 drone_model: DroneModel = DroneModel.CF2X, 
                 initial_xyzs=np.array([[0., 0., 1.]]), 
