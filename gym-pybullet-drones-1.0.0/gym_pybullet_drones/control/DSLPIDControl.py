@@ -244,6 +244,7 @@ class DSLPIDControl(BaseControl):
                          + np.multiply(self.I_COEFF_TOR, self.integral_rpy_e)
         target_torques = np.clip(target_torques, -3200, 3200)
         pwm = thrust + np.dot(self.MIXER_MATRIX, target_torques)
+        print(thrust, target_torques)
         pwm = np.clip(pwm, self.MIN_PWM, self.MAX_PWM)
         return self.PWM2RPM_SCALE * pwm + self.PWM2RPM_CONST
     

@@ -13,12 +13,12 @@ if __name__ == "__main__":
     SIM_FREQ_HZ = 1000
     AGGR_PHY_STEPS = 1 # 1 physics step per action/control command
 
-    register_env("AttitudeAviary2", lambda _: AttitudeAviary2())
+    register_env("AttitudeAviary1_1", lambda _: AttitudeAviary1_1())
 
     config = DEFAULT_CONFIG.copy()
     config["num_workers"] = 10
     config["framework"] = "torch"
-    config["env"] = "AttitudeAviary2"
+    config["env"] = "AttitudeAviary1_1"
     
     trainer = DDPGTrainer(config=config)
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
 
     # Evaluation
-    env = AttitudeAviary2(record=True)
+    env = AttitudeAviary1_1(record=True)
 
     obs = env.reset()
     start = time.time()

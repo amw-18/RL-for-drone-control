@@ -40,10 +40,12 @@ if __name__ == "__main__":
 
 
     config = {}
-    config["num_workers"] = 8
+    config["num_workers"] = 0
     config["framework"] = "torch"
-    # config["rollout_fragment_length"] = 200
-    # config["batch_mode"] = "complete_episodes"
+    config["timesteps_per_iteration"] = 1000
+    config["train_batch_size"] = 100
+    config["use_huber"] = True
+    config["policy_delay"] = 2
     
     config["env"] = env_name
     
@@ -51,28 +53,28 @@ if __name__ == "__main__":
     trainer = DDPGTrainer(config=config)
 
     eval_history = []
-    for iter in range(1000):  # 1M timesteps for 1000 iterations. Expected time 1.9 hours with 10 workers
+    for iter in range(250):  # 1M timesteps for 250 iterations.
         results = trainer.train()
         if iter % 5 == 0:
             eval_history.append(custom_eval(eval_env, trainer.get_policy(DEFAULT_POLICY_ID)))
             print(f"Iter: {iter} Evaluation Episode Reward: {eval_history[-1][0]}")
 
-    # trainer.save()
+    trainer.save()
     ray.shutdown()
     
     rew_history = [x[0] for x in eval_history]
     plt.plot(rew_history)
     plt.xlabel("Episodes (x5)")
     plt.ylabel("Cummulative Reward per Episode")
-    # plt.savefig("rew_history.png")
-    plt.show()
+    plt.savefig("rew_history__16-4.png")
+    # plt.show()
 
     rpy_curve = eval_history[-1][1]
     plt.plot(rpy_curve)
     plt.xlabel("Timestep")
     plt.ylabel("RPY_error")
-    # plt.savefig("final_rpy_curve.png")
-    plt.show()
+    plt.savefig("final_rpy_curve__16-4.png")
+    # plt.show()
 
 
     # # Evaluation

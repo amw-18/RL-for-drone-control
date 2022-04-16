@@ -374,11 +374,11 @@ class AttitudeAviary2_2(BaseAviary):
         return super().reset()
     
     def _create_target_rpy(self):
-        # target_rp = (np.random.rand(2)*2-1)*np.pi/4   # -pi/4 to +pi/4
+        target_rp = (np.random.rand(2)*2-1)*np.pi/36   # -pi/36 to +pi/36
         # # target_y = (np.random.rand(2)*2-1)*np.pi      # -pi to +pi
-        # target_y = [0]
-        # return np.array([target_rp[0], target_rp[1], target_y[0]])
-        return np.array([np.pi/9, np.pi/9, 0])
+        target_y = [0]
+        return np.array([target_rp[0], target_rp[1], target_y[0]])
+        # return np.array([np.pi/36, np.pi/36, 0])
 
     def _actionSpace(self):
         """
@@ -397,11 +397,11 @@ class AttitudeAviary2_2(BaseAviary):
 
     def _observationSpace(self):
         """
-        OBS OF SIZE 6 (WITH QUATERNION AND RPMS)
-        Observation vector -------- R  P  Y     WX WY WZ       
+        OBS OF SIZE 9 
+        Observation vector -------- R  P  Y     WX WY WZ    TR, TP, TY    
         """
-        obs_lower_bound = np.array([-1,-1,-1,   -1,-1,-1])
-        obs_upper_bound = np.array([ 1, 1, 1,    1, 1, 1])          
+        obs_lower_bound = np.array([-1,-1,-1,   -1,-1,-1,   -1, -1, -1])
+        obs_upper_bound = np.array([ 1, 1, 1,    1, 1, 1,    1,  1,  1])          
         return spaces.Box(low=obs_lower_bound, high=obs_upper_bound, dtype=np.float32)
 
     def _computeObs(self):
@@ -410,10 +410,14 @@ class AttitudeAviary2_2(BaseAviary):
         Returns
         -------
         ndarray
-            A Box() of shape (6,).
+            A Box() of shape (9,).
 
         """
         obs = self._clipAndNormalizeState(self._getDroneStateVector(0))
+        
+        # Adding target rpys to the observation 
+        obs = np.hstack([obs, 
+                        self.target_rpys/np.pi])
         return obs
 
     def _clipAndNormalizeState(self,
