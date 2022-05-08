@@ -357,7 +357,7 @@ class AttitudeAviary2_2(BaseAviary):
                         initial_xyzs=np.array([[0., 0., 1.]]),
                         initial_rpys=np.array([[0., 0., 0.]]),
                         physics=physics,
-                        freq=1000,
+                        freq=240,
                         aggregate_phy_steps=1,
                         gui=gui,
                         record=record,
@@ -417,7 +417,7 @@ class AttitudeAviary2_2(BaseAviary):
         
         # Adding target rpys to the observation 
         obs = np.hstack([obs, 
-                        self.target_rpys/np.pi])
+                        self.target_rpys/np.pi]).reshape((9,))
         return obs
 
     def _clipAndNormalizeState(self,

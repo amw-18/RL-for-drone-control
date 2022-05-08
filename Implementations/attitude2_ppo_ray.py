@@ -1,4 +1,3 @@
-from email import policy
 import numpy as np 
 import ray
 from ray.tune.registry import register_env
@@ -16,34 +15,47 @@ def custom_eval(env, policy):
     rpy_errs = []
     cumm_reward = 0
     obs = env.reset()
-    for _ in range(1*env.SIM_FREQ):
+    start = time.time()
+    for i in range(1*env.SIM_FREQ):
         action, _states, _dict = policy.compute_single_action(obs)
         obs, reward, done, info = env.step(action)
         cumm_reward += reward
         rpy_errs.append(info['rpy_err'])
+        if env.GUI:
+            if i%env.SIM_FREQ == 0:
+                env.render()
+                print(done)
+            sync(i, start, env.TIMESTEP)
+            if done:
+                break
 
     return cumm_reward, rpy_errs
 
 
 if __name__ == "__main__":
-    env_name = "AttitudeAviary2_1"
+    env_name = "AttitudeAviary2_2"
 
-    register_env(env_name, lambda _: AttitudeAviary2_1())
+    register_env(env_name, lambda _: AttitudeAviary2_2())
 
 
     config = {}
     config["num_workers"] = 0
     config["framework"] = "torch"
-    config["rollout_fragment_length"] = 1000
-    config["batch_mode"] = "complete_episodes"
     
     config["env"] = env_name
+
+    config["sgd_minibatch_size"] = 64
+    config["num_sgd_iter"] = 10
+    config["lr"] = 3e-4
+    config["lambda"] = 0.95
+    config["clip_param"] = 0.2
+
     
-    eval_env = AttitudeAviary2_1()
+    eval_env = AttitudeAviary2_2(gui=False)
     trainer = PPOTrainer(config=config)
 
     eval_history = []
-    for iter in range(1000):  # 1M timesteps for 1000 iterations. Expected time 1.9 hours with 10 workers
+    for iter in range(1000):
         results = trainer.train()
         if iter % 5 == 0:
             eval_history.append(custom_eval(eval_env, trainer.get_policy(DEFAULT_POLICY_ID)))
@@ -56,14 +68,14 @@ if __name__ == "__main__":
     plt.plot(rew_history)
     plt.xlabel("Episodes (x5)")
     plt.ylabel("Cummulative Reward per Episode")
-    # plt.savefig("rew_history.png")
+    plt.savefig("rew_history_26-4__.png")
     plt.show()
 
     rpy_curve = eval_history[-1][1]
     plt.plot(rpy_curve)
     plt.xlabel("Timestep")
     plt.ylabel("RPY_error")
-    # plt.savefig("final_rpy_curve.png")
+    plt.savefig("final_rpy_curve_26-4__.png")
     plt.show()
 
 

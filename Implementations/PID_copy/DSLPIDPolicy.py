@@ -11,7 +11,7 @@ class DSLPIDPolicy(Policy):
         Policy.__init__(self, observation_space, action_space, config)
 
         self.controller = DSLPIDControl(drone_model)
-        self.TSTEP = 0.004166666666666667
+        self.TSTEP = 0.004166666666666667  # 1/240
         self.MAX_RPM = 21702
 
     def compute_actions(self, 

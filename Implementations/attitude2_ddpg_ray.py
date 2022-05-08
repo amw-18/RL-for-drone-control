@@ -1,4 +1,3 @@
-from email import policy
 import numpy as np 
 import ray
 from ray.tune.registry import register_env
