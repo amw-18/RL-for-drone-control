@@ -33,9 +33,9 @@ def custom_eval(env, policy):
 
 
 if __name__ == "__main__":
-    env_name = "AttitudeAviary2_2"
+    env_name = "AttitudeAviary2_3"
 
-    register_env(env_name, lambda _: AttitudeAviary2_2())
+    register_env(env_name, lambda _: AttitudeAviary2_3())
 
 
     config = {}
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     config["clip_param"] = 0.2
 
     
-    eval_env = AttitudeAviary2_2(gui=False)
+    eval_env = AttitudeAviary2_3(gui=False)
     trainer = PPOTrainer(config=config)
 
     eval_history = []
@@ -64,33 +64,19 @@ if __name__ == "__main__":
     trainer.save()
     ray.shutdown()
     
+    plt.figure()
     rew_history = [x[0] for x in eval_history]
     plt.plot(rew_history)
     plt.xlabel("Episodes (x5)")
     plt.ylabel("Cummulative Reward per Episode")
-    plt.savefig("rew_history_26-4__.png")
-    plt.show()
+    plt.savefig("Implementations/Plots/rew_history_2_3_1.png")
 
+    plt.figure()
     rpy_curve = eval_history[-1][1]
     plt.plot(rpy_curve)
     plt.xlabel("Timestep")
     plt.ylabel("RPY_error")
-    plt.savefig("final_rpy_curve_26-4__.png")
+    plt.savefig("Implementations/Plots/final_rpy_curve_2_3_1.png")
+
+
     plt.show()
-
-
-    # # Evaluation
-    # env = AttitudeAviary2()
-
-    # obs = env.reset()
-    # start = time.time()
-    # for i in range(5*env.SIM_FREQ):
-    #     action, _states, _dict = policy.compute_single_action(obs)
-    #     obs, reward, done, info = env.step(action)
-    #     if i%env.SIM_FREQ == 0:
-    #         env.render()
-    #         print(done)
-    #     sync(i, start, env.TIMESTEP)
-    #     if done:
-    #         obs = env.reset()
-    # env.close()

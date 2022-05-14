@@ -476,3 +476,20 @@ class AttitudeAviary2_2(BaseAviary):
         rpy_err = self.target_rpys - curr_rpy
         return {'rpy_err': rpy_err}
        
+
+class AttitudeAviary2_3(AttitudeAviary2_2):
+    def __init__(self, physics: Physics = Physics.PYB, gui=False, record=False):
+        super().__init__(physics, gui, record)
+
+    def _computeReward(self):
+        ## Additional penalty for non-zero rpy rates
+        # Getting current rpy values and rpy rates
+        state = self._getDroneStateVector(0)
+        curr_rpy = state[7:10]
+        curr_rpy_rates = state[13:16]
+        # Calculating rpy error
+        rpy_err = self.target_rpys - curr_rpy
+        # Normalizing
+        rpy_err = np.abs(rpy_err / np.pi)
+        # The higher the sum of errors, the lower the reward
+        return - np.sum(rpy_err) - 0.1*np.sum(np.abs(curr_rpy_rates))
