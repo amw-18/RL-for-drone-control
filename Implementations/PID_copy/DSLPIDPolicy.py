@@ -1,4 +1,3 @@
-from distutils.command.config import config
 import gym_pybullet_drones
 from gym_pybullet_drones.envs.BaseAviary import DroneModel
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
@@ -27,7 +26,7 @@ class DSLPIDPolicy(Policy):
             # print(obs)
             state = obs[:20]
             target_rpys = obs[20:23]*np.pi
-            rpms, pos_e, rpy_e = self.controller.computeControlFromState(control_timestep=self.TSTEP,
+            rpms, pos_e, yaw_e = self.controller.computeControlFromState(control_timestep=self.TSTEP,
                                                                         state=state,
                                                                         target_pos=state[:3],
                                                                         target_rpy=target_rpys

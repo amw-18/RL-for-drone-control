@@ -1,4 +1,3 @@
-from numpy.lib.function_base import trim_zeros
 import pygame
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics
 from gym_pybullet_drones.envs.CtrlAviary import *
