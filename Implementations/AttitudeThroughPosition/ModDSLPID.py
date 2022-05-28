@@ -71,3 +71,49 @@ class ModDSLPID(DSLPIDControl):
                                           )
 
         return rpm, pos_e, computed_target_rpy
+
+class ModDSLPIDpos(DSLPIDControl):
+    def __init__(self, drone_model: DroneModel, g: float = 9.8):
+        super().__init__(drone_model, g)
+
+    def computeControl(self,
+                       control_timestep,
+                       state,
+                       target_pos,
+                       target_rpy=np.zeros(3),
+                       target_vel=np.zeros(3)
+                       ):
+        cur_pos = state[:3]
+        cur_quat = state[3:7]
+        cur_vel = state[10:13]
+
+        self.control_counter += 1
+        thrust, computed_target_rpy, pos_e = self._dslPIDPositionControl(control_timestep,
+                                                                         cur_pos,
+                                                                         cur_quat,
+                                                                         cur_vel,
+                                                                         target_pos,
+                                                                         target_rpy,
+                                                                         target_vel
+                                                                         )
+
+        return thrust, computed_target_rpy
+
+class ModDSLPIDatt(DSLPIDControl):
+    def __init__(self, drone_model: DroneModel, g: float = 9.8):
+        super().__init__(drone_model, g)
+
+    def computeControl(self,
+                       control_timestep,
+                       state,
+                       thrust, 
+                       computed_target_rpy,
+                       target_rpy_rates=np.zeros(3)
+                       ):
+        cur_quat = state[3:7]
+        return self._dslPIDAttitudeControl(control_timestep,
+                                          thrust,
+                                          cur_quat,
+                                          computed_target_rpy,
+                                          target_rpy_rates
+                                          )
