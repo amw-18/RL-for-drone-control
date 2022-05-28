@@ -3,7 +3,7 @@ from scipy.spatial.transform.rotation import Rotation as R
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics, BaseAviary
 from gym import spaces
 
-class TestAviary1(BaseAviary):
+class PIDInteractionAviary1(BaseAviary):
     def __init__(self,
                  drone_model: DroneModel=DroneModel.CF2X,
                  ep_len: int=1,
