@@ -1,4 +1,7 @@
 import numpy as np
+import pybullet as p
+from scipy.spatial.transform import Rotation
+
 from gym_pybullet_drones.envs.BaseAviary import DroneModel
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 
@@ -117,3 +120,45 @@ class ModDSLPIDatt(DSLPIDControl):
                                           computed_target_rpy,
                                           target_rpy_rates
                                           )
+
+class ModDSLPIDatt_torq(ModDSLPIDatt):
+    def __init__(self, drone_model: DroneModel, g: float = 9.8):
+        super().__init__(drone_model, g)
+
+    def computeControl(self,
+                       control_timestep,
+                       state, 
+                       computed_target_rpy,
+                       target_rpy_rates=np.zeros(3)
+                       ):
+        cur_quat = state[3:7]
+        return self._dslPIDAttitudeControl(control_timestep,
+                                          cur_quat,
+                                          computed_target_rpy,
+                                          target_rpy_rates
+                                          )
+    
+    def _dslPIDAttitudeControl(self,
+                               control_timestep,
+                               cur_quat,
+                               target_euler,
+                               target_rpy_rates
+                               ):
+        cur_rotation = np.array(p.getMatrixFromQuaternion(cur_quat)).reshape(3, 3)
+        cur_rpy = np.array(p.getEulerFromQuaternion(cur_quat))
+        target_quat = (Rotation.from_euler('XYZ', target_euler, degrees=False)).as_quat()
+        w,x,y,z = target_quat
+        target_rotation = (Rotation.from_quat([w, x, y, z])).as_matrix()
+        rot_matrix_e = np.dot((target_rotation.transpose()),cur_rotation) - np.dot(cur_rotation.transpose(),target_rotation)
+        rot_e = np.array([rot_matrix_e[2, 1], rot_matrix_e[0, 2], rot_matrix_e[1, 0]]) 
+        rpy_rates_e = target_rpy_rates - (cur_rpy - self.last_rpy)/control_timestep
+        self.last_rpy = cur_rpy
+        self.integral_rpy_e = self.integral_rpy_e - rot_e*control_timestep
+        self.integral_rpy_e = np.clip(self.integral_rpy_e, -1500., 1500.)
+        self.integral_rpy_e[0:2] = np.clip(self.integral_rpy_e[0:2], -1., 1.)
+        #### PID target torques ####################################
+        target_torques = - np.multiply(self.P_COEFF_TOR, rot_e) \
+                         + np.multiply(self.D_COEFF_TOR, rpy_rates_e) \
+                         + np.multiply(self.I_COEFF_TOR, self.integral_rpy_e)
+                    
+        return target_torques
