@@ -3,6 +3,7 @@ from scipy.spatial.transform.rotation import Rotation as R
 from gym_pybullet_drones.envs.BaseAviary import DroneModel, Physics, BaseAviary
 from gym import spaces
 from ModDSLPID import ModDSLPIDpos
+import math
 
 class TestAv1PID(BaseAviary):
     def __init__(self,
@@ -38,6 +39,8 @@ class TestAv1PID(BaseAviary):
                         dynamics_attributes)
         
         self.REQD_SPEED = 1 # m/s
+        self.PWM2RPM_scale = 0.2685
+        self.PWM2RPM_const = 65535
         self.EPISODE_LEN_SEC = ep_len
 
         assert(self.DRONE_MODEL==DroneModel.CF2X)
@@ -49,7 +52,8 @@ class TestAv1PID(BaseAviary):
         self._wp_creator()
 
     def _wp_creator(self):
-        self.target_rpy = np.array([*(np.random.rand(2)*2-1), 0])*np.pi/6   # -pi/6 to +pi/6
+        # self.target_rpy = np.array([*(np.random.rand(2)*2-1), 0])*np.pi/6   # -pi/6 to +pi/6
+        self.target_rpy = np.array([np.pi/18, np.pi/18, 0])
         target_facing = R.from_euler('xyz', self.target_rpy).apply(np.array([0., 0., 1.]))
 
         self.NUM_WP = self.EPISODE_LEN_SEC*self.SIM_FREQ
@@ -71,7 +75,7 @@ class TestAv1PID(BaseAviary):
 
     def _actionSpace(self):
         """
-        Thrust and Torque action: [P1, P2, P3, P4] 
+        RPM action: [P1, P2, P3, P4] 
         """
         act_lower_bound = np.array([0.,           0.,           0.,           0.])
         act_upper_bound = np.array([self.MAX_RPM, self.MAX_RPM, self.MAX_RPM, self.MAX_RPM])
@@ -121,7 +125,7 @@ class TestAv1PID(BaseAviary):
                                                                                                     target_pos=target_pos,
                                                                                                     target_vel=target_vel)
         self.wp_counter += 1
-        # self.wp_counter = min(self.wp_counter, self.NUM_WP-1)
+        self.wp_counter = min(self.wp_counter, self.NUM_WP-1)
 
         return super().step(action)
 
@@ -132,7 +136,7 @@ class TestAv1PID(BaseAviary):
         Returns
         -------
         ndarray
-            A Box() of shape (20,).
+            A Box() of shape (24,).
 
         """
         obs = np.hstack([self._getDroneStateVector(0),
@@ -153,8 +157,11 @@ class TestAv1PID(BaseAviary):
         curr_rpy = state[7:10]
         # Calculating rpy error
         rpy_err = np.abs(self.last_computed_target_rpy - curr_rpy)
-        # The higher the sum of errors, the lower the reward
-        return -np.sum(rpy_err)
+        # Add the error due to difference between required thrust and actual thrust
+        z_thrust = np.sum(self.KF*(self.last_clipped_action**2))
+        target_z_thrust = 4*self.KF*(self.target_z_thrust*self.PWM2RPM_scale+self.PWM2RPM_const)**2
+        norm_thrust_err = np.abs(target_z_thrust-z_thrust)/(4*self.MAX_THRUST)
+        return -np.sum(rpy_err) - norm_thrust_err
 
     def _computeInfo(self):
         return {}
@@ -194,12 +201,57 @@ class TestAv1RL(TestAv1PID):
                  vision_attributes,
                  dynamics_attributes
                  )
+        self.PWM2RPM_SCALE = 0.2685
+        self.PWM2RPM_CONST = 4070.3
+        self.MAX_THRUST_PWM = (math.sqrt(self.MAX_THRUST / (4*self.KF)) - self.PWM2RPM_CONST) / self.PWM2RPM_SCALE
 
     def _observationSpace(self):
         # of length 10
         #### Observation vector ### R       P       Y        WX       WY       WZ        Thrust           TargetR    TargetP    TargetY
-        obs_lower_bound = np.array([-np.pi, -np.pi, -np.pi,  -np.inf, -np.inf, -np.inf,  0,               -np.pi,    -np.pi,    -np.pi])
-        obs_upper_bound = np.array([np.pi,  np.pi,  np.pi,   np.inf,  np.inf,  np.inf,   self.MAX_THRUST, np.pi,      np.pi,     np.pi])
+        obs_lower_bound = np.array([-1, -1, -1,  -1, -1, -1,  0, -1,    -1,    -1])
+        obs_upper_bound = np.array([1,  1,  1,   1,  1,  1,   1, 1,      1,     1])
         return spaces.Box(low  = obs_lower_bound,
                           high = obs_upper_bound,
                           dtype= np.float32)
+
+    def _computeObs(self):
+        """Returns the current observation of the environment.
+
+        Returns
+        -------
+        ndarray
+            A Box() of shape (10,).
+
+        """
+        state = self._getDroneStateVector(0)
+        norm_rpy = state[7:10]/np.pi
+        rpy_rates = state[13:16]
+        if np.linalg.norm(rpy_rates) > 0:
+            norm_rpy_rates = rpy_rates/np.linalg.norm(rpy_rates)
+        else:
+            norm_rpy_rates = rpy_rates
+        norm_target_z_thrust = self.target_z_thrust/self.MAX_THRUST_PWM
+        norm_target_rpy = self.computed_target_rpy/np.pi
+        obs = np.hstack([norm_rpy,
+                         norm_rpy_rates,
+                         norm_target_z_thrust,
+                         norm_target_rpy]).reshape(10,)
+        
+        return obs
+
+    def _actionSpace(self):
+        """
+        RPM action: [P1, P2, P3, P4] 
+        """
+        act_lower_bound = np.array([0.,           0.,           0.,           0.])
+        act_upper_bound = np.array([1.,           1.,           1.,           1.])
+        return spaces.Box(low  = act_lower_bound,
+                          high = act_upper_bound,
+                          dtype= np.float32)
+
+    def _preprocessAction(self,
+                          action
+                          ):
+        
+        action = action*self.MAX_RPM
+        return action
