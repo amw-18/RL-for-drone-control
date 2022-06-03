@@ -57,8 +57,8 @@ class TestAv2PID(BaseAviary):
         self._wp_creator()
 
     def _wp_creator(self):
-        # self.target_rpy = np.array([*(np.random.rand(2)*2-1), 0])*np.pi/6   # -pi/6 to +pi/6
-        self.target_rpy = np.array([np.pi/18, np.pi/18, 0])
+        self.target_rpy = np.array([*(np.random.rand(2)*2-1), 0])*np.pi/18   # -pi/18 to +pi/18
+        # self.target_rpy = np.array([np.pi/18, np.pi/18, 0])
         target_facing = R.from_euler('xyz', self.target_rpy).apply(np.array([0., 0., 1.]))
 
         self.NUM_WP = self.EPISODE_LEN_SEC*self.SIM_FREQ
