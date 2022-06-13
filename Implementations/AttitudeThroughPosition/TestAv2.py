@@ -52,13 +52,12 @@ class TestAv2PID(BaseAviary):
         self.PID_pos_ctrl = ModDSLPIDpos(DroneModel.CF2X)
         self.target_z_thrust = self.GRAVITY
         self.computed_target_rpy = np.array([0., 0., 0.])
-        self.last_computed_target_rpy = None
         
         self._wp_creator()
 
     def _wp_creator(self):
         self.target_rpy = np.array([*(np.random.rand(2)*2-1), 0])*np.pi/18   # -pi/18 to +pi/18
-        # self.target_rpy = np.array([np.pi/18, np.pi/18, 0])
+        # self.target_rpy = np.array([1., 1., 0.])*np.pi/3
         target_facing = R.from_euler('xyz', self.target_rpy).apply(np.array([0., 0., 1.]))
 
         self.NUM_WP = self.EPISODE_LEN_SEC*self.SIM_FREQ
@@ -73,7 +72,6 @@ class TestAv2PID(BaseAviary):
         self.PID_pos_ctrl = ModDSLPIDpos(DroneModel.CF2X)
         self.target_z_thrust = self.GRAVITY
         self.computed_target_rpy = np.array([0., 0., 0.])
-        self.last_computed_target_rpy = None
 
         self._wp_creator()
         return super().reset()
@@ -109,18 +107,6 @@ class TestAv2PID(BaseAviary):
                           dtype= np.float32)
 
     def step(self, action):
-        state = self._getDroneStateVector(0)
-        target_pos = self.TARGET_POS[self.wp_counter]
-        target_vel = self.TARGET_VEL[self.wp_counter]
-        self.last_computed_target_rpy = self.computed_target_rpy
-
-        self.target_z_thrust, self.computed_target_rpy = self.PID_pos_ctrl.computeControl(control_timestep=1/self.SIM_FREQ,
-                                                                                                    state=state,
-                                                                                                    target_pos=target_pos,
-                                                                                                    target_vel=target_vel)
-        self.wp_counter += 1
-        self.wp_counter = min(self.wp_counter, self.NUM_WP-1)
-
         return super().step(action)
 
 
@@ -133,7 +119,19 @@ class TestAv2PID(BaseAviary):
             A Box() of shape (23,).
 
         """
-        obs = np.hstack([self._getDroneStateVector(0),
+        state = self._getDroneStateVector(0)
+        target_pos = self.TARGET_POS[self.wp_counter]
+        target_vel = self.TARGET_VEL[self.wp_counter]
+        self.last_computed_target_rpy = self.computed_target_rpy
+
+        self.target_z_thrust, self.computed_target_rpy = self.PID_pos_ctrl.computeControl(control_timestep=1/self.SIM_FREQ,
+                                                                                                    state=state,
+                                                                                                    target_pos=target_pos,
+                                                                                                    target_vel=target_vel)
+        self.wp_counter += 1
+        self.wp_counter = min(self.wp_counter, self.NUM_WP-1)
+
+        obs = np.hstack([state,
                          self.computed_target_rpy]).reshape(23,)
         
         return obs
@@ -154,7 +152,11 @@ class TestAv2PID(BaseAviary):
         return -np.sum(rpy_err)
 
     def _computeInfo(self):
-        return {}
+        state = self._getDroneStateVector(0)
+        curr_rpy = state[7:10]
+        # Calculating rpy error
+        rpy_err = np.abs(self.last_computed_target_rpy - curr_rpy)
+        return {'rpy_err':rpy_err, 'target_rpy':self.last_computed_target_rpy, 'curr_rpy':curr_rpy}
 
 class TestAv2RL(TestAv2PID):
     def __init__(self,
@@ -232,6 +234,17 @@ class TestAv2RL(TestAv2PID):
 
         """
         state = self._getDroneStateVector(0)
+        target_pos = self.TARGET_POS[self.wp_counter]
+        target_vel = self.TARGET_VEL[self.wp_counter]
+        self.last_computed_target_rpy = self.computed_target_rpy
+
+        self.target_z_thrust, self.computed_target_rpy = self.PID_pos_ctrl.computeControl(control_timestep=1/self.SIM_FREQ,
+                                                                                                    state=state,
+                                                                                                    target_pos=target_pos,
+                                                                                                    target_vel=target_vel)
+        self.wp_counter += 1
+        self.wp_counter = min(self.wp_counter, self.NUM_WP-1)
+
         norm_rpy = state[7:10]/np.pi
         rpy_rates = state[13:16]
         if np.linalg.norm(rpy_rates) > 0:
